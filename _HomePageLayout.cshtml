@@ -1,0 +1,310 @@
+﻿@using System.Web.Optimization
+@using MerchantSite.Models
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>@ViewBag.Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+
+    @RenderSection("meta", required: false)
+
+    <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico" />
+
+    @*Sticky Mobile*@
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,500,500i,700,700i,900,900i|Source+Sans+Pro:300,300i,400,400i,600,600i,700,700i,900,900i" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="~/Content/themes/stickymobile/light/styles/framework.css" />
+    <link rel="stylesheet" type="text/css" href="~/Content/themes/stickymobile/light/fonts/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="~/Content/themes/stickymobile/light/styles/style.css" />
+    <script type="text/javascript" src="~/Content/themes/stickymobile/light/scripts/jquery.js"></script>
+    @*<script type="text/javascript" src="~/Scripts/jquery.validate.min.js"></script>
+    <script type="text/javascript" src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>*@
+    <script type="text/javascript" src="~/Content/themes/stickymobile/light/scripts/plugins.js"></script>
+    <script type="text/javascript" src="~/Content/themes/stickymobile/light/scripts/custom.js"></script>
+    <script type="text/javascript" src="~/Content/themes/stickymobile/light/scripts/custom-script.js"></script>
+    <script type="text/javascript" src="~/Scripts/jquery.unobtrusive-ajax.js"></script>
+
+    <meta id="Description" name="DESCRIPTION" content="@Html.Raw(@ViewBag.Description)" />
+    <meta id="Keywords" name="KEYWORDS" content="@Html.Raw(@ViewBag.Keywords)" />
+    <link href="/favicon.ico" type="image/x-icon" rel="shortcut icon" />
+    @RenderSection("themecss", required: false)
+    @RenderSection("cssReport", required: false)
+
+    <!-- Add mousewheel plugin (this is optional) -->
+    <script type="text/javascript" src="~/Content/fancybox/lib/jquery.mousewheel-3.0.6.pack.js"></script>
+    <!-- Add fancyBox -->
+    <link rel="stylesheet" href="~/Content/fancybox/source/jquery.fancybox.css?v=2.1.5" type="text/css" media="screen" />
+    <script type="text/javascript" src="~/Content/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+</head>
+@helper isActive(string navFunc)
+{
+    string function = ViewBag.Function;
+    if (function == navFunc)
+    {
+        @("active-nav")
+    }
+}
+<body class="@Session["Theme"]" data-background="none" data-highlight="blue2">
+
+    @RenderSection("featured", required: false)
+
+    <div id="page" style="opacity: 1;">
+
+        @RenderBody()
+
+        @RenderSection("pageChildEle", required: false)
+
+        @if (Request.IsAuthenticated && Session["sessionId"] != null)
+        {
+            var db = new IPayDBMerchant();
+            var user = (from p in db.Users where p.UserName == System.Web.HttpContext.Current.User.Identity.Name select p).SingleOrDefault();
+
+            <div id="fast-access-modal" class="content-boxed menu menu-box-detached menu-box-bottom round-small" data-menu-effect="menu-push" data-menu-width="80%" data-menu-height="80%">
+
+                <div class="content bottom-5">
+
+                    @*<h3 class="bolder">Truy cập nhanh các chức năng</h3>*@
+
+                    <div class="text-center top-15 bottom-15">
+                        <a href="#" class="chip chip-small bg-gray1-dark bottom-0">
+                            <i class="fa fa-dollar-sign bg-green1-dark"></i>
+                            <span class="color-black">Hi <b>@user.FirstName</b>, số dư tài khoản: <b>@string.Format("{0:N0}", user.Balance) VNĐ</b></span>
+                        </a>
+                    </div>
+
+                    @{
+                        Html.RenderPartial("_FunctionLinkView", user);
+                    }
+                </div>
+
+            </div>
+
+            <div id="footer-menu" class="footer-menu-5-icons footer-menu-style-1">
+                <a href="~/Home/Index" class="@isActive("home")"><i class="fa fa-home"></i><span>Trang chủ</span></a>
+                <a href="~/Transaction/Topup" class="@isActive("topup")"><i class="fa fa-mobile-alt"></i><span>Nạp tiền</span></a>
+                <a href="~/Transaction/MultiTopup" class="@isActive("multi-topup")">
+                    <i class="fa fa-tasks"></i>
+                    <span>Nạp tiền</span>
+                    <span style="line-height: 50px;">nhiều số</span>
+                </a>
+                <a href="~/Transaction/BuyCard" class="@isActive("buy-card")"><i class="fa fa-money-check-alt"></i><span>Mua thẻ</span></a>
+                <a href="~/Transaction/PayBill" class="@isActive("pay-bill")">
+                    <i class="fa fa-file-invoice-dollar"></i>
+                    <span>Thanh toán</span>
+                    <span style="line-height: 50px;">Hóa đơn</span>
+                </a>
+                @*<a href="#" data-menu="menu-settings"><i class="fa fa-cog"></i><span>Settings</span></a>*@
+                @*<a href="/Transaction/TopupKPlus" class="@isActive("kplus")"><i class="fab fa-kickstarter"></i><span>Nạp tiền K+</span></a>*@
+                @*<a href="/FlightBooking/Index" class="@isActive("flight-booking")"><i class="fa fa-user"></i><span>Vé máy bay</span></a>*@
+                @*<a href="/Account/AccountManager" class="@isActive("account-manager")"><i class="fa fa-user"></i><span>Tài khoản</span></a>*@
+                <div class="clear"></div>
+            </div>
+        }
+        else
+        {
+            <div id="footer-menu" class="footer-menu-3-icons footer-menu-style-1">
+                <a href="~/" class="@isActive("home")"><i class="fa fa-home"></i><span>Trang chủ</span></a>
+                <a href="~/User/Login" class="@isActive("login")"><i class="fa fa-sign-in-alt"></i><span>Đăng nhập</span></a>
+                <a href="~/User/Register" class="@isActive("register")"><i class="fa fa-user-plus"></i><span>Đăng ký</span></a>
+                <div class="clear"></div>
+            </div>
+        }
+    </div>
+
+    <div class="menu-hider"></div>
+    <div class="page-bg"><div></div></div>
+
+    <div id="menu-settings" class="menu menu-box-bottom menu-box-detached round-large" data-menu-height="310" data-menu-effect="menu-over">
+        <div class="content bottom-0">
+            <div class="menu-title"><h1>Cài đặt</h1><a href="#" class="close-menu"><i class="fa fa-times"></i></a></div>
+            <div class="divider bottom-20"></div>
+            <div class="toggle-with-icon">
+                <i class="toggle-icon round-tiny fa fa-moon bg-red2-dark color-white"></i>
+                <a href="#" class="toggle-switch toggle-ios toggle-off" data-toggle-theme data-toggle-height="27" data-toggle-width="50" data-toggle-content="toggle-content-1" data-toggle-checkbox="toggle-checkbox-1" data-bg-on="bg-green1-dark" data-bg-off="">
+                    <span class="color-theme regularbold font-13">Chế độ tối</span>
+                    <strong></strong>
+                    <u></u>
+                </a>
+            </div>
+            <div class="divider top-25 bottom-0"></div>
+            <div class="link-list link-list-2 link-list-long-border">
+                <a href="#" data-menu="menu-highlights">
+                    <i class="fa fa-tint bg-green1-dark color-white round-tiny"></i>
+                    <span>Màu highlight</span>
+                    <strong>Bao gồm 16 màu highlight</strong>
+                    <em class="bg-highlight">HOT</em>
+                </a>
+                <a href="#" data-menu="menu-backgrounds" class="no-border">
+                    <i class="fa fa-brush bg-blue2-dark color-white round-tiny"></i>
+                    <span>Màu nền</span>
+                    <strong>Bao gồm 10 màu nền</strong>
+                    <em class="bg-highlight">NEW</em>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div id="menu-highlights" class="menu menu-box-bottom menu-box-detached round-large" data-menu-height="380" data-menu-effect="menu-over">
+        <div class="content bottom-0">
+            <div class="menu-title"><h1>Highlights</h1><p class="color-highlight">Any Element can have a Highlight Color</p><a href="#" class="close-menu"><i class="fa fa-times"></i></a></div>
+            <div class="divider bottom-0"></div>
+            <div class="highlight-changer bottom-30">
+                <a href="#" data-change-highlight="blue2"><i class="fa fa-circle color-blue2-dark"></i><span class="color-blue2-light">Default</span></a>
+                <a href="#" data-change-highlight="red1"><i class="fa fa-circle color-red1-dark"></i><span class="color-red2-light">Red</span></a>
+                <a href="#" data-change-highlight="orange"><i class="fa fa-circle color-orange-dark"></i><span class="color-orange-light">Orange</span></a>
+                <a href="#" data-change-highlight="pink2"><i class="fa fa-circle color-pink2-dark"></i><span class="color-pink2-light">Pink</span></a>
+                <a href="#" data-change-highlight="magenta2"><i class="fa fa-circle color-magenta2-dark"></i><span class="color-magenta2-light">Purple</span></a>
+                <a href="#" data-change-highlight="aqua"><i class="fa fa-circle color-aqua-dark"></i><span class="color-aqua-light">Aqua</span></a>
+                <a href="#" data-change-highlight="teal"><i class="fa fa-circle color-teal-dark"></i><span class="color-teal-light">Teal</span></a>
+                <a href="#" data-change-highlight="mint"><i class="fa fa-circle color-mint-dark"></i><span class="color-mint-light">Mint</span></a>
+                <a href="#" data-change-highlight="green2"><i class="fa fa-circle color-green2-dark"></i><span class="color-green2-light">Green</span></a>
+                <a href="#" data-change-highlight="green1"><i class="fa fa-circle color-green1-dark"></i><span class="color-green1-light">Grass</span></a>
+                <a href="#" data-change-highlight="yellow2"><i class="fa fa-circle color-yellow2-dark"></i><span class="color-yellow2-light">Sunny</span></a>
+                <a href="#" data-change-highlight="yellow1"><i class="fa fa-circle color-yellow1-dark"></i><span class="color-yellow1-light">Goldish</span></a>
+                <a href="#" data-change-highlight="brown1"><i class="fa fa-circle color-brown1-dark"></i><span class="color-brown1-light">Wood</span></a>
+                <a href="#" data-change-highlight="dark1"><i class="fa fa-circle color-dark1-dark"></i><span class="color-dark1-light">Night</span></a>
+                <a href="#" data-change-highlight="dark2"><i class="fa fa-circle color-dark2-dark"></i><span class="color-dark2-light">Dark</span></a>
+                <div class="clear"></div>
+            </div>
+            <a href="#" data-menu="menu-settings" class="button button-s button-full button-m button-round-large bg-highlight shadow-large">Quay về</a>
+        </div>
+    </div>
+    <div id="menu-backgrounds" class="menu menu-box-bottom menu-box-detached round-large" data-menu-height="310" data-menu-effect="menu-over">
+        <div class="content">
+            <div class="menu-title"><h1>Backgrounds</h1><p class="color-highlight">Change Page Color Behind Content Boxes</p><a href="#" class="close-menu"><i class="fa fa-times"></i></a></div>
+            <div class="divider bottom-0"></div>
+            <div class="background-changer bottom-30">
+                <a href="#" data-change-background="none"><i class="bg-theme"></i><span>Default</span></a>
+                <a href="#" data-change-background="plum"><i class="body-plum"></i><span class="color-plum-dark">Plum</span></a>
+                <a href="#" data-change-background="magenta3"><i class="body-magenta3"></i><span class="color-magenta3-dark">Magenta</span></a>
+                <a href="#" data-change-background="dark3"><i class="body-dark3"></i><span class="color-dark3-dark">Dark</span></a>
+                <a href="#" data-change-background="violet"><i class="body-violet"></i><span class="color-violet-dark">Violet</span></a>
+                <a href="#" data-change-background="red3"><i class="body-red3"></i><span class="color-red3-dark">Red</span></a>
+                <a href="#" data-change-background="green3"><i class="body-green3"></i><span class="color-green3-dark">Green</span></a>
+                <a href="#" data-change-background="sky"><i class="body-sky"></i><span class="color-sky-dark">Sky</span></a>
+                <a href="#" data-change-background="pumpkin"><i class="body-pumpkin"></i><span class="color-pumpkin-dark">Orange</span></a>
+                <a href="#" data-change-background="yellow3"><i class="body-yellow3"></i><span class="color-yellow3-dark">Yellow</span></a>
+                <div class="clear"></div>
+            </div>
+            <a href="#" data-menu="menu-settings" class="button button-s button-full button-m button-round-large bg-highlight shadow-large">Quay về</a>
+        </div>
+    </div>
+
+    <!-- End container-->
+    <script type="text/javascript">
+
+        //$.mobile.ajaxEnabled = false;
+        //jqXHR.abort();
+
+        @{
+            if(Session["Theme"] == null)
+            {
+                Session["Theme"] = "theme-light";
+            }
+        }
+
+        var $body = $("body");
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.attributeName === "class") {
+                    var attributeValue = $(mutation.target).prop(mutation.attributeName);
+                    console.log("Class attribute changed to:", attributeValue);
+                    var data = "theme=" + attributeValue;
+                    $.ajax({
+                        type: 'POST',
+                        url: '@Url.Action("SetTheme", "Home")',
+                        data: data,
+                        success: function (htmlData) {
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            console.log(xhr.status);
+                            console.log(thrownError);
+                        }
+                    });
+                }
+            });
+        });
+        observer.observe($body[0], {
+            attributes: true
+        });
+
+
+        $('body').on('event', function () {
+            $('body').addClass('theme-light').trigger('classChange');
+            $('body').addClass('theme-dark').trigger('classChange');
+        });
+
+        $('body').on('classChange', function (event, classString) {
+
+            var data = "theme=" + classString;
+            $.ajax({
+                type: 'POST',
+                url: '@Url.Action("SetTheme", "Home")',
+                data: data,
+                success: function (htmlData) {
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    console.log(xhr.status);
+                    console.log(thrownError);
+                }
+            });
+        });
+
+        function checkTimeout(data) {
+            var thereIsStillTime = true;
+
+            if (data) {
+                if (data.responseText) {
+                    if ((data.responseText.indexOf("<title>Log On</title>") > -1) || (data.responseText.indexOf("<title>Object moved</title>") > -1) || (data.responseText === '"_Logon_"')) thereIsStillTime = false;
+                } else {
+                    if (data == "_Logon_") thereIsStillTime = false;
+                }
+
+                if (!thereIsStillTime) {
+                    window.location.href = "/Home/TimeoutRedirect";
+                }
+            } else {
+                $.ajax({
+                    url: "/Home/CheckTimeout",
+                    type: 'POST',
+                    dataType: 'json',
+                    contentType: 'application/json; charset=utf-8',
+                    async: false,
+                    complete: function (result) {
+                        thereIsStillTime = checkTimeout(result);
+                    }
+                });
+            }
+
+            return thereIsStillTime;
+        }
+        $.fn.digits = function () {
+            return this.each(function () {
+                $(this).val($(this).val().replace(/\,/g, "").replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,"));
+            })
+        }
+        $(document).ready(function () {
+            $(".text-currency").on('change keyup paste', function () {
+                $(this).digits();
+            });
+            $(".text-currency").keydown(function (e) {
+                // Allow: backspace, delete, tab, escape, enter.
+                if ($.inArray(e.keyCode, [46, 8, 9, 27, 13, 110]) !== -1 ||
+                    // Allow: Ctrl+A
+                    (e.keyCode == 65 && e.ctrlKey === true) ||
+                    // Allow: home, end, left, right
+                    (e.keyCode >= 35 && e.keyCode <= 39)) {
+                    // let it happen, don't do anything
+                    return;
+                }
+                // Ensure that it is a number and stop the keypress
+                if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+    @RenderSection("scripts", required: false)
+
+</body>
+</html>

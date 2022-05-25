@@ -1,0 +1,420 @@
+﻿@using MerchantSite.Models
+@using MerchantSite.Commons
+@using Microsoft.AspNet.Identity
+
+@{
+    var db = new IPayDBMerchant();
+    var userId = User.Identity.GetUserId();
+    var user = db.Users.FirstOrDefault(u => string.Equals(u.UserId.ToString(), userId));
+
+    List<Role> roles = user == null ? new List<Role>() : user.Roles.ToList();
+    var menus = DataCache.GetAdminMenuForRoles(roles, db);
+}
+
+@helper ActiveItem(string actionName, string controllerName, string areaName)
+{
+    if ((ViewContext.RouteData.Values["action"].ToString() == actionName || actionName == null) &&
+            ViewContext.RouteData.Values["controller"].ToString() == controllerName &&
+            (ViewContext.RouteData.DataTokens["area"] == null || ViewContext.RouteData.DataTokens["area"].ToString() == areaName))
+    {
+        @:active
+    }
+}
+
+@helper ActiveItem(List<string> actionNames, List<string> controllerNames, string areaName)
+{
+    if ((actionNames == null || actionNames.Contains(ViewContext.RouteData.Values["action"].ToString())) &&
+            controllerNames != null && controllerNames.Contains(ViewContext.RouteData.Values["controller"].ToString()) &&
+            (ViewContext.RouteData.DataTokens["area"] == null || ViewContext.RouteData.DataTokens["area"].ToString() == areaName))
+    {
+        @:active
+    }
+}
+
+@functions  { 
+
+    private MvcHtmlString ActionLink(NavigationMenu menu)
+    {
+        if (string.IsNullOrWhiteSpace(menu.URL))
+        {
+            return Html.ActionLink(menu.LinkText, menu.ActionName, menu.ControllerName, menu.QueryString.ToRouteValue(), null);
+        }
+        else
+        {
+            return MvcHtmlString.Create(String.Format("<a href='{0}' target='{1}'>{2}</a>", menu.URL, menu.Target, menu.LinkText));
+        }
+    }
+}
+
+<div class="navbar-default navbar-fixed">
+    <div class="container">
+        <div class="row">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+            <div class="navbar-collapse collapse navbar-responsive-collapse">
+                       
+                @if (Request.IsAuthenticated && Session["sessionId"] != null)
+                {
+                    <ul class="nav navbar-nav">
+                        
+                        @foreach (var menu in menus)
+                    {
+                        if (menu.ParentId == null)
+                        {
+                            if(menu.IsDropdownList == true)
+                            {
+                                var subMenus = menus.Where(m => m.ParentId == menu.Id).ToList();
+
+                                    <li class="dropdown @ActiveItem(menu.ActionName.Split(',').ToList(), menu.ControllerName.Split(',').ToList(), null)">
+
+                                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">@menu.LinkText <b class="caret"></b></a>
+
+                                        @if (subMenus.Count > 0)
+                                        {
+                                            <ul class="dropdown-menu">
+
+                                                @foreach (var sm in subMenus)
+                                                {
+
+                                                    if(sm.IsDropdownHeader == true)
+                                                    {
+                                                        var menuItems = menus.Where(m => m.ParentId == sm.Id).ToList();
+
+
+                                                        <li class="divider"></li>
+                                                        <li class="dropdown-header">
+                                                            @sm.LinkText
+                                                        </li>
+
+                                                        foreach(var item in menuItems)
+                                                        {
+                                                            <li>
+                                                                @ActionLink(item)
+                                                            </li>
+                                                        }
+
+                                                    }
+                                                    else
+                                                    {
+                                                        <li>
+                                                            @ActionLink(sm)
+                                                        </li>
+                                                    }
+
+                                                }
+                                            </ul>
+
+                                        }
+
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li class="@ActiveItem(menu.ActionName, menu.ControllerName, null)">
+                                        @ActionLink(menu)
+                                    </li>
+                                }
+
+                            }
+                        }
+
+                    </ul>
+
+                    
+                    <ul class="nav navbar-nav navbar-right">
+                        <li class="dropdown user user-menu">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                <i class="glyphicon glyphicon-user"></i>
+                                @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.SuperUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PrePaidUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PostPaidUser))
+    {
+                                    <span>Hi @user.FirstName, số dư: @string.Format("{0:N0}", user.Balance) đ <i class="caret"></i></span>
+                                }
+                                else
+                                {
+                                    <span>Hi @user.FirstName<i class="caret"></i></span>
+                                }
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="user-header bg-light-blue">
+                                    <img src="@string.Format("/Manage/RetrieveUserImage?uid={0}&type={1}", user.Id, ConfigKey.LoadImageType.AVATAR).ToAbsoluteUrl()" class="img-circle" onerror="this.src='/Content/themes/images/user.png';" />
+                                    @*<img src="~/Content/themes/images/user.png" class="img-circle" alt="User Image" />*@
+                                    <p>
+                                        @user.FirstName - @user.MerchantType.TypeDescription
+                                        @if (@user.RegisterDate != null)
+    {
+                                <small>Thành viên từ @user.RegisterDate.Value.ToString("dd/MM/yyyy")</small>}
+                                    </p>
+                                </li>
+                                <!-- Menu Body -->
+                                <li class="user-body">
+                                    @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.SuperUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PrePaidUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PostPaidUser))
+    {
+        var balance = user.Balance.HasValue ? user.Balance.Value : 0;
+        var freezeM = user.FreezeMoney.HasValue ? user.FreezeMoney.Value : 0;
+        var totalBln = balance + freezeM;
+                                        <p class="text-primary">Số dư khả dụng: @string.Format("{0:N0}", balance) đ.</p>
+                                        <p class="text-danger">Số tiền đóng băng: @string.Format("{0:N0}", freezeM) đ.</p>
+                                        // Progress bar cho mức sử dụng hạn mức của nhân viên
+                                        var avaiPcnt = totalBln == 0 ? 100 : (user.Balance.HasValue ? user.Balance.Value : 0) / totalBln * 100;
+                                        <div class="progress progress-striped active">
+                                            <div class="progress-bar" style="width: @avaiPcnt%"></div>
+                                        </div>
+                                    }
+                                </li>
+                                <!-- Menu Footer-->
+                                <li class="user-footer">
+                                    <div class="pull-left">
+                                        @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.CMSRoles))
+    {
+                                            <text>
+                                                @Html.ActionLink("CMS", "Index", "Dashboard", new { area = "CMSBackend" }, new { @class = "btn btn-flat btn-primary" })
+                                            </text>
+                                        }
+    @Html.ActionLink("Thông tin", "AccountManager", "Account", null, new { @class = "btn btn-default btn-flat" })
+                                    </div>
+                                    <div class="pull-right">
+                                        @Html.ActionLink("Đăng xuất", "Logout", "User", null, new { @class = "btn btn-default btn-flat" })
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                }
+                else
+                {
+                    <ul class="nav navbar-nav navbar-right">
+                        <li>@Html.ActionLink("Đăng ký", "Register", "User")</li>
+                        <li>@Html.ActionLink("Đăng nhập", "Login", "User")</li>
+                    </ul>
+                }
+
+                @*@if (Request.IsAuthenticated && Session["sessionId"] != null)
+    {
+                    <ul class="nav navbar-nav">
+
+                        <li class="@ActiveItem("Index", "Home", null)">
+                            @Html.ActionLink("Trang chủ", "Index", "Home", null, new { })
+                        </li>
+
+                        @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.SuperAdmin)
+                            || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.Admin))
+    {
+                            <li class="@ActiveItem("Merchants", "Manage", null)">
+                                @Html.ActionLink("DS tài khoản", "Merchants", "Manage")
+                            </li>
+                            <li class="@ActiveItem("BankAccounts", "Manage", null)">
+                                @Html.ActionLink("TK ngân hàng", "BankAccounts", "Manage")
+                            </li>
+                            <li class="@ActiveItem("BalanceHistory", "Account", null)">@Html.ActionLink("Biến động số dư", "BalanceHistory", "Account")</li>
+                        }
+                        else if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.CustomerService))
+                        {
+                            <li class="@ActiveItem("Merchants", "Manage", null)">
+                                @Html.ActionLink("DS tài khoản", "Merchants", "Manage")
+                            </li>
+                            <li class="@ActiveItem("BankAccounts", "Manage", null)">
+                                @Html.ActionLink("TK ngân hàng", "BankAccounts", "Manage")
+                            </li>
+                            <li class="@ActiveItem("BalanceHistory", "Account", null)">@Html.ActionLink("Biến động số dư", "BalanceHistory", "Account")</li>
+                        }
+                        else if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.AccountViewer))
+                        {
+                            <li class="@ActiveItem("Merchants", "Manage", null)">
+                                @Html.ActionLink("DS tài khoản", "Merchants", "Manage")
+                            </li>
+                        }
+                        @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.SuperUser))
+    {
+                            <li class="dropdown @ActiveItem("BuyCard", "Transaction", null)">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Thẻ cào <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li>@Html.ActionLink("Mua thẻ", "BuyCard", "Transaction")</li>
+                                    <li>@Html.ActionLink("Gửi thẻ cào qua SMS", "SMSCard", "Transaction")</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown @ActiveItem("Topup", "Transaction", null)">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Nạp tiền <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li class="dropdown-header">Dịch vụ điện thoại</li>
+                                    <li>@Html.ActionLink("Nạp tiền điện thoại & Data", "Topup", "Transaction")</li>
+                                    <li>@Html.ActionLink("Nạp tiền nhiều số", "MultiTopup", "Transaction")</li>
+                                    <li class="divider"></li>
+                                    <li class="dropdown-header">Dịch vụ thanh toán cước</li>
+                                    <li>@Html.ActionLink("Thanh toán hóa đơn", "PayBill", "Transaction")</li>
+                                </ul>
+                            </li>
+
+                            <li class="dropdown @ActiveItem(null, new List<string>() { "Account", "Manage" }, null)">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tài khoản <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li>@Html.ActionLink("Thông tin tài khoản", "AccountManager", "Account", null, null)</li>
+                                    <li>
+                                        @Html.ActionLink("Báo cáo", "Merchants", "Manage")
+                                    </li>
+                                    <li>@Html.ActionLink("Biến động số dư", "BalanceHistory", "Account")</li>
+                                    <li class="divider"></li>
+                                    <li class="dropdown-header">Hoạt động</li>
+                                    <li>@Html.ActionLink("Tạo đại lý cấp II", "CreateMerchantII", "Account")</li>
+                                    <li>@Html.ActionLink("Chuyển tiền", "SendMoney", "Account")</li>
+                                </ul>
+                            </li>
+                        }
+                        else if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PrePaidUser)
+                            || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PostPaidUser))
+                        {
+                            <li class="dropdown @ActiveItem("BuyCard", "Transaction", null)">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Thẻ cào <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li>@Html.ActionLink("Mua thẻ", "BuyCard", "Transaction")</li>
+                                    <li>@Html.ActionLink("Gửi thẻ cào qua SMS", "SMSCard", "Transaction")</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown @ActiveItem("Topup", "Transaction", null)">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Nạp tiền <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li class="dropdown-header">Dịch vụ điện thoại</li>
+                                    <li>@Html.ActionLink("Nạp tiền điện thoại & Data", "Topup", "Transaction")</li>
+                                    <li>@Html.ActionLink("Nạp tiền nhiều số", "MultiTopup", "Transaction")</li>
+                                    <li class="divider"></li>
+                                    <li class="dropdown-header">Dịch vụ thanh toán cước</li>
+                                    <li>@Html.ActionLink("Thanh toán hóa đơn", "PayBill", "Transaction")</li>
+                                </ul>
+                            </li>
+                            <li class="dropdown @ActiveItem(null, new List<string>() { "Account", "Manage" }, null)">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Tài khoản <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li>@Html.ActionLink("Thông tin tài khoản", "AccountManager", "Account", null, null)</li>
+                                    <li>
+                                        @Html.ActionLink("Báo cáo", "Merchants", "Manage")
+                                    </li>
+                                    <li>@Html.ActionLink("Lịch sử thay đổi số dư", "BalanceHistory", "Account")</li>
+                                </ul>
+                            </li>
+                        }
+                        @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.ApproveDeposit))
+    {
+                            <li class="dropdown @ActiveItem("ListTrans", "Manage", null)">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Xử lý <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li>@Html.ActionLink("Giao dịch Nạp tiền", "ListTrans", "Manage", new { type = "cm" }, null)</li>
+                                    <li>@Html.ActionLink("Giao dịch Rút tiền", "ListTrans", "Manage", new { type = "wm" }, null)</li>
+                                </ul>
+                            </li>
+                        }
+                        <li class="@ActiveItem("Index", "Transaction", null)">@Html.ActionLink("Giao dịch", "Index", "Transaction")</li>
+
+                        <li class="dropdown @ActiveItem("UserGuide", "Home", null)">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Thông tin<b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li>@Html.ActionLink("Hướng dẫn", "UserGuide", "Home")</li>
+                                <li class="divider"></li>
+                                <li><a href="https://wpay.vn/tin-tuc" target="_blank">Tin tức</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <ul class="nav navbar-nav navbar-right">
+                        <!-- User Account: style can be found in dropdown.less -->
+                        <li class="dropdown user user-menu">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                <i class="glyphicon glyphicon-user"></i>
+                                @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.SuperUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PrePaidUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PostPaidUser))
+    {
+                                    <span>Hi @user.FirstName, số dư: @string.Format("{0:N0}", user.Balance) đ <i class="caret"></i></span>
+                                }
+                                else if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PostPaidUser))
+                                {
+                                    var usedCre = Utils.CalcTransValue(new IPayDBMerchant(), user.UserId, true);
+                                    <span>
+                                        Hi @user.FirstName, hạn mức: @string.Format("{0:N0}", user.CreditLimit) đ/ngày, đã dùng: @string.Format("{0:N0}", usedCre) đ
+                                        <i class="caret"></i>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>Hi @user.FirstName<i class="caret"></i></span>
+                                }
+                            </a>
+                            <ul class="dropdown-menu">
+                                <!-- User image -->
+                                <li class="user-header bg-light-blue">
+                                    <img src="~/Content/themes/images/user.png" class="img-circle" alt="User Image" />
+                                    <p>
+                                        @user.FirstName - @user.MerchantType.TypeDescription
+                                        @if (@user.RegisterDate != null)
+    {
+                                            <small>Thành viên từ @user.RegisterDate.Value.ToString("dd/MM/yyyy")</small>
+                                        }
+                                    </p>
+                                </li>
+                                <!-- Menu Body -->
+                                <li class="user-body">
+                                    @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.SuperUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PrePaidUser)
+                                    || RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PostPaidUser))
+    {
+        var balance = user.Balance.HasValue ? user.Balance.Value : 0;
+        var freezeM = user.FreezeMoney.HasValue ? user.FreezeMoney.Value : 0;
+        var totalBln = balance + freezeM;
+                                        <p class="text-primary">Số dư khả dụng: @string.Format("{0:N0}", balance) đ.</p>
+                                        <p class="text-danger">Số tiền đóng băng: @string.Format("{0:N0}", freezeM) đ.</p>
+                                        // Progress bar cho mức sử dụng hạn mức của nhân viên
+                                        var avaiPcnt = totalBln == 0 ? 100 : (user.Balance.HasValue ? user.Balance.Value : 0) / totalBln * 100;
+                                        <div class="progress progress-striped active">
+                                            <div class="progress-bar" style="width: @avaiPcnt%"></div>
+                                        </div>
+                                    }
+                                    else if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.PostPaidUser))
+                                    {
+                                        var usedCre = Utils.CalcTransValue(new IPayDBMerchant(), user.UserId, true);
+                                        <p class="text-danger">Hạn mức trong ngày: @string.Format("{0:N0}", user.CreditLimit) đ.</p>
+                                        <p class="text-primary">Đã sử dụng: @string.Format("{0:N0}", usedCre) đ.</p>
+                                        // Progress bar cho mức sử dụng hạn mức của nhân viên
+                                        var usingPcnt = user.CreditLimit == 0 ? 100 : (usedCre / user.CreditLimit) * 100;
+                                        <div class="progress progress-striped active">
+                                            <div class="progress-bar" style="width: @usingPcnt%"></div>
+                                        </div>
+                                    }
+                                </li>
+                                <!-- Menu Footer-->
+                                <li class="user-footer">
+                                    <div class="pull-left">
+                                        @if (RoleHelper.IsInRole(roles, ConfigKey.MerchantRoleName.CMSRoles))
+    {
+                                            <text>
+                                                @Html.ActionLink("CMS", "Index", "Dashboard", new { area = "CMSBackend" }, new { @class = "btn btn-flat btn-primary" })
+                                            </text>
+                                        }
+    @Html.ActionLink("Thông tin", "AccountManager", "Account", null, new { @class = "btn btn-default btn-flat" })
+                                    </div>
+                                    <div class="pull-right">
+                                        @Html.ActionLink("Đăng xuất", "Logout", "User", null, new { @class = "btn btn-default btn-flat" })
+                                    </div>
+                                </li>
+                            </ul>
+                        </li>
+                        <!-- User Account: style can be found in dropdown.less -->
+
+                    </ul>
+                }
+                else
+                {
+                    <ul class="nav navbar-nav navbar-right">
+                        <li>@Html.ActionLink("Đăng ký", "Register", "User")</li>
+                        <li>@Html.ActionLink("Đăng nhập", "Login", "User")</li>
+                    </ul>
+                }*@
+            </div>
+        </div>
+    </div>
+</div>
